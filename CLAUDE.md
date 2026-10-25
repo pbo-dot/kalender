@@ -47,7 +47,7 @@ Alt nyt og alt, der ændres, skal leve op til top-design anno 2026.
 - Korte tekster. Ingen lange hjælpetekster.
 - Bløde, diskrete overgange (respektér "reducer bevægelse").
 
-Status: Første version har faner i toppen og kort med kanter. Den skal tilpasses designreglerne. Vis et forslag først.
+Valgt stil (godkendt af ejeren): koboltblå hovedfarve, kølig lys baggrund med svag farveglød, svævende "glas"-fanebjælke (bund på telefon, venstre side på computer ≥ 840 px), otte faste farvepar til fag. Skrift: Bricolage Grotesque (overskrifter) og Figtree (tekst). Skolens Aula-farver bruges ikke.
 
 ## Teknik i ejerens andre apps
 

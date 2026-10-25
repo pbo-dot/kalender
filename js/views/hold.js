@@ -1,8 +1,8 @@
 import * as store from '../store.js';
 import { esc } from '../util.js';
-import { formModal } from '../ui.js';
+import { formModal, icon, colorFor } from '../ui.js';
 
-const CATEGORIES = [['dsa', 'DSA'], ['aargang', 'Årgangsholddeling']];
+const CATEGORIES = [['dsa', 'DSA'], ['aargang', 'Årgangshold']];
 
 export function renderHold(main, [cat = 'dsa']) {
   if (!CATEGORIES.some(([k]) => k === cat)) cat = 'dsa';
@@ -11,24 +11,22 @@ export function renderHold(main, [cat = 'dsa']) {
   const members = (t) => (t.members || '').split('\n').map((s) => s.trim()).filter(Boolean);
 
   main.innerHTML = `
-    <div class="page-head">
+    <header class="page-head">
       <h1>Hold</h1>
-      <nav class="segmented" aria-label="Type">${CATEGORIES.map(([k, l]) =>
-        `<a href="#/hold/${k}" class="${k === cat ? 'active' : ''}">${l}</a>`).join('')}</nav>
-      <button type="button" class="btn primary" data-new>Nyt hold</button>
-    </div>
-    <p class="notice">Skriv kun fornavne eller initialer på børnene.</p>
-    <div class="hold-grid">
-      ${teams.map((t) => `<article class="card team" data-edit="${t.id}" role="button" tabindex="0">
-        <h2>${esc(t.name)}</h2>
-        <dl>
-          ${t.adult ? `<dt>Voksne</dt><dd>${esc(t.adult)}</dd>` : ''}
-          ${t.when ? `<dt>Hvornår</dt><dd>${esc(t.when)}</dd>` : ''}
-          ${t.place ? `<dt>Hvor</dt><dd>${esc(t.place)}</dd>` : ''}
-        </dl>
-        ${members(t).length ? `<p class="members"><strong>${members(t).length} børn:</strong> ${members(t).map(esc).join(', ')}</p>` : ''}
-        ${t.note ? `<p class="muted pre">${esc(t.note)}</p>` : ''}
-      </article>`).join('') || `<div class="empty">Der er ingen ${cat === 'dsa' ? 'DSA-hold' : 'årgangshold'} endnu.</div>`}
+      <div class="head-actions"><button type="button" class="btn filled" data-new>${icon('plus')}Nyt hold</button></div>
+    </header>
+    <nav class="button-group" aria-label="Type">${CATEGORIES.map(([k, l]) =>
+      `<a href="#/hold/${k}" class="${k === cat ? 'on' : ''}">${l}</a>`).join('')}</nav>
+    <div class="card-grid">
+      ${teams.map((t) => `<button type="button" class="card team ${colorFor(t.name)}" data-edit="${t.id}">
+        <span class="team-name">${esc(t.name)}</span>
+        <span class="meta">
+          ${t.adult ? `<span>${icon('person')}${esc(t.adult)}</span>` : ''}
+          ${t.when ? `<span>${icon('clock')}${esc(t.when)}</span>` : ''}
+          ${t.place ? `<span>${icon('pin')}${esc(t.place)}</span>` : ''}
+        </span>
+        ${members(t).length ? `<span class="members"><b>${members(t).length} børn</b> · ${members(t).map(esc).join(', ')}</span>` : ''}
+      </button>`).join('') || `<div class="empty">Ingen ${cat === 'dsa' ? 'DSA-hold' : 'årgangshold'} endnu.</div>`}
     </div>`;
 
   main.onclick = (ev) => {
@@ -46,10 +44,10 @@ function teamModal(team, category) {
       { name: 'name', label: 'Holdnavn', required: true, placeholder: 'F.eks. DSA hold 1' },
       { name: 'category', label: 'Type', type: 'select', options: CATEGORIES, half: true },
       { name: 'adult', label: 'Voksne', list: 'people', half: true },
-      { name: 'when', label: 'Hvornår', half: true, placeholder: 'F.eks. tirsdag 2. modul' },
+      { name: 'when', label: 'Hvornår', half: true, placeholder: 'F.eks. tirsdag 10–11' },
       { name: 'place', label: 'Hvor', half: true },
-      { name: 'members', label: 'Børn (én pr. linje)', type: 'textarea', rows: 8 },
-      { name: 'note', label: 'Note', type: 'textarea', rows: 3 },
+      { name: 'members', label: 'Børn (fornavn/initialer, én pr. linje)', type: 'textarea', rows: 7 },
+      { name: 'note', label: 'Note', type: 'textarea', rows: 2 },
     ],
     onSave: (v) => store.put('teams', { ...(team || {}), ...v }),
     onDelete: team ? () => store.remove('teams', team.id) : null,

@@ -3,6 +3,7 @@ import { esc, fmtLong } from '../util.js';
 import { dayDate, weekNo, isWeekKey } from '../weeks.js';
 import { SLOTS } from '../config.js';
 import { viewOf } from './skema.js';
+import { icon, peopleDatalist } from '../ui.js';
 
 // Holddeling for én lektion på én bestemt dag. Åbnes typisk i en ny fane.
 export function renderHolddeling(main, [id, week]) {
@@ -22,29 +23,30 @@ export function renderHolddeling(main, [id, week]) {
   document.title = `Holddeling ${e.subject} – Teamkalender`;
 
   main.innerHTML = `
-    <div class="page-head">
+    <header class="page-head">
       <div>
-        <a class="back" href="#/skema/${viewOf(e)}/${week}">‹ Til skemaet</a>
-        <h1>Holddeling · ${esc(e.subject)}</h1>
-        <p class="muted">${esc(e.classes.join(' og '))} · ${fmtLong(dayDate(week, e.day))} · kl. ${esc(time)}</p>
+        <a class="back" href="#/skema/${viewOf(e)}/${week}">${icon('left')}Skema</a>
+        <h1>Holddeling</h1>
+        <p class="sub">${esc(e.subject)} · ${esc(e.classes.join(' + '))} · ${fmtLong(dayDate(week, e.day))} · ${esc(time)}</p>
       </div>
-    </div>
-    <p class="notice">Skriv kun fornavne eller initialer, og ingen oplysninger om børnenes helbred, trivsel eller lignende.</p>
-    <div class="hold-grid">
+    </header>
+    <p class="note">${icon('info')}Kun fornavne eller initialer.</p>
+    <div class="card-grid">
       ${wk.hold.map((h, i) => `<section class="card hold-card" data-i="${i}">
-        <label for="hn-${i}">Hold / værksted
-          <input id="hn-${i}" data-f="name" value="${esc(h.name)}" placeholder="F.eks. Dansk værksted, 0.B"></label>
-        <label for="ha-${i}">Voksne
+        <label class="field" for="hn-${i}"><span>Hold</span>
+          <input id="hn-${i}" data-f="name" value="${esc(h.name)}" placeholder="F.eks. Dansk værksted 0.B"></label>
+        <label class="field" for="ha-${i}"><span>Voksne</span>
           <input id="ha-${i}" data-f="adult" value="${esc(h.adult)}" list="people" placeholder="F.eks. Caroline"></label>
-        <label for="hm-${i}">Børn <span class="muted">(én pr. linje)</span>
-          <textarea id="hm-${i}" data-f="members" rows="8">${esc(h.members)}</textarea></label>
-        <button type="button" class="btn ghost danger" data-remove="${i}">Fjern hold</button>
+        <label class="field" for="hm-${i}"><span>Børn (én pr. linje)</span>
+          <textarea id="hm-${i}" data-f="members" rows="7">${esc(h.members)}</textarea></label>
+        <button type="button" class="btn text danger" data-remove="${i}">${icon('trash')}Fjern hold</button>
       </section>`).join('')}
-      ${wk.hold.length ? '' : '<div class="empty">Der er ingen hold endnu. Tilføj det første hold herunder.</div>'}
+      ${wk.hold.length ? '' : '<div class="empty">Ingen hold endnu.</div>'}
     </div>
+    ${peopleDatalist()}
     <div class="actions">
-      <button type="button" class="btn primary" data-addhold>Tilføj hold</button>
-      ${prevWeek && !wk.hold.length ? `<button type="button" class="btn" data-copy>Kopiér holdene fra uge ${weekNo(prevWeek)}</button>` : ''}
+      <button type="button" class="btn filled" data-addhold>${icon('plus')}Tilføj hold</button>
+      ${prevWeek && !wk.hold.length ? `<button type="button" class="btn tonal" data-copy>${icon('copy')}Kopiér fra uge ${weekNo(prevWeek)}</button>` : ''}
     </div>`;
 
   let timer;

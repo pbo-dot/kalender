@@ -1,10 +1,10 @@
 import * as store from '../store.js';
 import { CLASSES, SLOTS, SUBJECTS } from '../config.js';
-import { esc, uid, hueFor, fmtDate } from '../util.js';
+import { esc, uid, fmtDate } from '../util.js';
 import {
   DAYS, currentWeek, addWeeks, weeksBetween, dayDate, weekNo, weekLabel, describeWeeks, isWeekKey,
 } from '../weeks.js';
-import { openModal, closeModal, choose, toast } from '../ui.js';
+import { openModal, closeModal, choose, toast, icon, colorFor } from '../ui.js';
 
 // En lektion ("entry") ligger i én eller flere klasser, på en dag og et modul, fra uge `from` til `to`.
 // Uger der er undtaget for en klasse står i `except` som "2026-W43:0.A".
@@ -18,83 +18,112 @@ const hasAnyActive = (e) => weeksBetween(e.from, e.to).some((w) => e.classes.som
 const lessonLabel = (n) => SLOTS.find((s) => s.lesson === n)?.time || `${n}. modul`;
 const classLabel = (e) => (isYearGroup(e) ? '0. årgang' : e.classes[0]);
 export const viewOf = (e) => (isYearGroup(e) ? 'aargang' : e.classes[0]);
+const SHORT = ['Man', 'Tir', 'Ons', 'Tor', 'Fre'];
+
+// Valgt dag på telefonen huskes, mens man bliver i samme uge.
+let picked = { week: null, day: 0 };
 
 export function renderSkema(main, [view = CLASSES[0], week]) {
   if (![...CLASSES, 'aargang'].includes(view)) view = CLASSES[0];
   if (!isWeekKey(week)) week = currentWeek();
+  const isNow = week === currentWeek();
+  const todayIdx = isNow ? Math.min(Math.max(new Date().getDay() - 1, 0), 4) : -1;
+  if (picked.week !== week) picked = { week, day: Math.max(todayIdx, 0) };
+  const sel = picked.day;
+
   const lessons = store.all('lessons').sort((a, b) => a.subject.localeCompare(b.subject, 'da'));
-  const tabs = [...CLASSES.map((c) => [c, c]), ['aargang', '0. årgang']];
+  const tabs = [...CLASSES.map((c) => [c, c]), ['aargang', 'Årgang']];
 
-  const cellEntries = (day, lesson) => lessons.filter((e) => e.day === day && e.lesson === lesson);
-
-  const block = (e) => {
+  const card = (e) => {
     const w = e.weekly?.[week] || {};
     const voksne = w.voksne || e.voksne;
     const hold = (w.hold || []).filter((h) => h.name || h.adult);
-    return `<div class="lesson" style="--hue:${hueFor(e.subject)}">
+    return `<div class="lesson ${colorFor(e.subject)}">
       <button type="button" class="lesson-title" data-open="${e.id}">
         <span>${esc(e.subject)}</span>
-        ${isYearGroup(e) && view !== 'aargang' ? '<span class="tag">årgang</span>' : ''}
-        ${isSeries(e) ? `<span class="tag" title="Serie ${describeWeeks([e.from, e.to])}">uge ${weekNo(e.from)}–${weekNo(e.to)}</span>` : ''}
+        ${isYearGroup(e) && view !== 'aargang' ? '<span class="badge">årgang</span>' : ''}
+        ${isSeries(e) ? `<span class="badge">uge ${weekNo(e.from)}–${weekNo(e.to)}</span>` : ''}
       </button>
-      ${hold.length ? `<ul class="hold-summary">${hold.map((h) =>
-        `<li><strong>${esc(h.name)}</strong>${h.adult ? `: ${esc(h.adult)}` : ''}</li>`).join('')}</ul>` : ''}
-      <div class="pills">
-        <button type="button" class="pill ${w.plan ? 'on' : ''}" data-open="${e.id}" data-tab="plan">Plan</button>
-        <button type="button" class="pill ${voksne ? 'on' : ''}" data-open="${e.id}" data-tab="voksne">${voksne ? esc(voksne) : 'Voksne'}</button>
-        <a class="pill ${hold.length ? 'on' : ''}" href="#/holddeling/${e.id}/${week}" target="_blank" rel="noopener">Holddeling</a>
+      ${hold.length ? `<ul class="hold-lines">${hold.map((h) =>
+        `<li><b>${esc(h.name)}</b>${h.adult ? `: ${esc(h.adult)}` : ''}</li>`).join('')}</ul>` : ''}
+      <div class="chips">
+        <button type="button" class="chip ${w.plan ? '' : 'off'}" data-open="${e.id}" data-tab="plan">${icon('plan')}Plan</button>
+        <button type="button" class="chip ${voksne ? '' : 'off'}" data-open="${e.id}" data-tab="voksne">${icon('person')}<span>${voksne ? esc(voksne) : 'Voksne'}</span></button>
+        <a class="chip ${hold.length ? '' : 'off'}" href="#/holddeling/${e.id}/${week}" target="_blank" rel="noopener">${icon('split')}${hold.length ? `${hold.length} hold` : 'Holddeling'}</a>
       </div>
     </div>`;
   };
 
+  // Indholdet i ét felt (dag + modul).
   const cell = (day, lesson) => {
+    const here = lessons.filter((e) => e.day === day && e.lesson === lesson);
     let html;
     if (view === 'aargang') {
-      html = cellEntries(day, lesson).map((e) => {
+      html = here.map((e) => {
         const active = CLASSES.filter((c) => isActive(e, c, week));
         if (!active.length) return '';
-        if (isYearGroup(e) && active.length === e.classes.length) return block(e);
-        return `<button type="button" class="lesson mini" data-open="${e.id}" style="--hue:${hueFor(e.subject)}">
-          <span class="muted">${esc(active.join(' + '))}:</span> ${esc(e.subject)}</button>`;
+        if (isYearGroup(e) && active.length === e.classes.length) return card(e);
+        return `<button type="button" class="lesson mini ${colorFor(e.subject)}" data-open="${e.id}">
+          <b>${esc(active.join(' + '))}</b> ${esc(e.subject)}</button>`;
       }).join('');
     } else {
-      html = cellEntries(day, lesson).filter((e) => isActive(e, view, week)).map(block).join('');
+      html = here.filter((e) => isActive(e, view, week)).map(card).join('');
     }
-    return `<td>${html}<button type="button" class="add" data-add="${day}:${lesson}"
-      aria-label="Tilføj ${DAYS[day]} ${lessonLabel(lesson)}">+</button></td>`;
+    const label = `Tilføj ${DAYS[day]} ${lessonLabel(lesson)}`;
+    return html
+      ? `${html}<button type="button" class="add-more" data-add="${day}:${lesson}" aria-label="${label}">${icon('plus')}</button>`
+      : `<button type="button" class="add-slot" data-add="${day}:${lesson}" aria-label="${label}">${icon('plus')}<span>Tilføj</span></button>`;
   };
 
-  const rows = SLOTS.map((s) => s.pause
-    ? `<tr class="pause"><th scope="row">${esc(s.pause)}</th><td colspan="${DAYS.length}"></td></tr>`
-    : `<tr><th scope="row"><span class="time">${esc(s.time)}</span></th>${DAYS.map((_, d) => cell(d, s.lesson)).join('')}</tr>`).join('');
+  const pauseIcon = (s) => icon(/frokost/i.test(s.pause) ? 'bowl' : 'apple');
+
+  // Computer: hele ugen som gitter.
+  const grid = `<div class="week-grid" role="grid">
+    <div></div>
+    ${DAYS.map((d, i) => `<div class="wg-head ${i === todayIdx ? 'today' : ''}"><b>${d}</b>${fmtDate(dayDate(week, i))}</div>`).join('')}
+    ${SLOTS.map((s) => s.pause
+      ? `<div></div><div class="pause-band">${pauseIcon(s)}${esc(s.pause)}</div>`
+      : `<div class="wg-time">${esc(s.time)}</div>${DAYS.map((_, d) => `<div class="wg-cell">${cell(d, s.lesson)}</div>`).join('')}`).join('')}
+  </div>`;
+
+  // Telefon: én dag ad gangen.
+  const dayChips = `<div class="day-chips">${DAYS.map((_, i) =>
+    `<button type="button" class="day-chip ${i === sel ? 'on' : ''} ${i === todayIdx ? 'today' : ''}" data-day="${i}"
+      aria-pressed="${i === sel}">${SHORT[i]}<b>${dayDate(week, i).getDate()}</b></button>`).join('')}</div>`;
+  const dayList = `<div class="day-list">${SLOTS.map((s) => s.pause
+    ? `<div class="pause-band">${pauseIcon(s)}${esc(s.pause)}</div>`
+    : `<div class="slot"><div class="slot-time">${esc(s.time).replace('–', '<br>')}</div><div class="slot-body">${cell(sel, s.lesson)}</div></div>`).join('')}
+  </div>`;
+
+  const freeLesson = SLOTS.filter((s) => s.lesson)
+    .find((s) => !lessons.some((e) => e.day === sel && e.lesson === s.lesson && CLASSES.some((c) => isActive(e, c, week))))?.lesson || 1;
 
   main.innerHTML = `
-    <div class="page-head">
-      <nav class="segmented" aria-label="Klasse">${tabs.map(([k, l]) =>
-        `<a href="#/skema/${k}/${week}" class="${k === view ? 'active' : ''}">${l}</a>`).join('')}</nav>
-      <div class="weeknav">
-        <a class="btn icon" href="#/skema/${view}/${addWeeks(week, -1)}" aria-label="Forrige uge">‹</a>
-        <div class="weeklabel"><strong>${weekLabel(week)}</strong>
-          <span>${fmtDate(dayDate(week, 0))} – ${fmtDate(dayDate(week, 4))}</span></div>
-        <a class="btn icon" href="#/skema/${view}/${addWeeks(week, 1)}" aria-label="Næste uge">›</a>
-        ${week !== currentWeek() ? `<a class="btn ghost" href="#/skema/${view}/${currentWeek()}">Denne uge</a>` : ''}
+    <header class="page-head">
+      <h1>Skema</h1>
+      <div class="head-actions">
+        <div class="weeknav">
+          <a class="icon-btn" href="#/skema/${view}/${addWeeks(week, -1)}" aria-label="Forrige uge">${icon('left')}</a>
+          <div class="week-pill"><b>Uge ${weekNo(week)}</b><span>${fmtDate(dayDate(week, 0), { day: 'numeric' })}–${fmtDate(dayDate(week, 4))}</span></div>
+          <a class="icon-btn" href="#/skema/${view}/${addWeeks(week, 1)}" aria-label="Næste uge">${icon('right')}</a>
+        </div>
+        ${isNow ? '' : `<a class="btn tonal" href="#/skema/${view}/${currentWeek()}">I dag</a>`}
+        <button type="button" class="btn filled wide-only" data-add="${Math.max(todayIdx, 0)}:1">${icon('plus')}Lektion</button>
       </div>
-    </div>
-    ${view === 'aargang' ? '<p class="hint">Det du lægger ind her, kommer automatisk i både 0.A og 0.B. Lektioner der kun er i én klasse, står med lille skrift.</p>' : ''}
-    <div class="grid-wrap">
-      <table class="skema">
-        <thead><tr><th class="corner">Uge ${weekNo(week)}</th>${DAYS.map((d, i) =>
-          `<th scope="col">${d}<span>${fmtDate(dayDate(week, i))}</span></th>`).join('')}</tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-    <div class="daylist">${DAYS.map((d, i) => `<section class="day">
-      <h2>${d} <span>${fmtDate(dayDate(week, i))}</span></h2>
-      ${SLOTS.filter((s) => s.lesson).map((s) =>
-        `<div class="day-slot"><span class="time">${esc(s.time)}</span>${cell(i, s.lesson).replace(/^<td>|<\/td>$/g, '')}</div>`).join('')}
-    </section>`).join('')}</div>`;
+    </header>
+    <nav class="button-group" aria-label="Klasse">${tabs.map(([k, l]) =>
+      `<a href="#/skema/${k}/${week}" class="${k === view ? 'on' : ''}" ${k === view ? 'aria-current="page"' : ''}>${l}</a>`).join('')}</nav>
+    <div class="wide-only">${grid}</div>
+    <div class="narrow-only">${dayChips}${dayList}</div>
+    <button type="button" class="fab narrow-only" data-add="${sel}:${freeLesson}">${icon('plus')}Lektion</button>`;
 
   main.onclick = (ev) => {
+    const dayBtn = ev.target.closest('[data-day]');
+    if (dayBtn) {
+      picked.day = +dayBtn.dataset.day;
+      renderSkema(main, [view, week]);
+      return;
+    }
     const open = ev.target.closest('[data-open]');
     if (open) {
       const e = store.get('lessons', open.dataset.open);
@@ -121,59 +150,57 @@ export function openLessonModal({ entry, classes, day, lesson, week, tab = 'plan
   const e = entry || { classes, day, lesson, from: week, to: week, subject: '', voksne: '', weekly: {}, except: [] };
   const w = e.weekly?.[week] || {};
   const hold = (w.hold || []).filter((h) => h.name || h.adult);
-  const date = fmtDate(dayDate(week, e.day), { day: 'numeric', month: 'long' });
+  const date = fmtDate(dayDate(week, e.day), { day: 'numeric', month: 'short' });
 
   const d = openModal(`<form class="modal-form lesson-form">
     <h2>${isNew ? 'Ny lektion' : esc(e.subject)}</h2>
-    <p class="muted">${esc(classLabel(e))}${isYearGroup(e) ? ' (0.A og 0.B)' : ''} · ${DAYS[e.day]} d. ${date} · uge ${weekNo(week)}</p>
+    <p class="sub">${esc(classLabel(e))} · ${DAYS[e.day].toLowerCase()} ${date} · ${lessonLabel(e.lesson)}</p>
     <div class="fields">
-      <label for="f-subject">Fag / overskrift
+      <label class="field" for="f-subject"><span>Fag</span>
         <input id="f-subject" name="subject" list="subjects" required value="${esc(e.subject)}" placeholder="F.eks. Dansk"></label>
       <datalist id="subjects">${SUBJECTS.map((s) => `<option value="${esc(s)}">`).join('')}</datalist>
-      <label class="half" for="f-day">Dag
+      <label class="field half" for="f-day"><span>Dag</span>
         <select id="f-day" name="day">${DAYS.map((n, i) => `<option value="${i}" ${i === e.day ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-      <label class="half" for="f-lesson">Tidspunkt
+      <label class="field half" for="f-lesson"><span>Tid</span>
         <select id="f-lesson" name="lesson">${SLOTS.filter((s) => s.lesson).map((s) =>
           `<option value="${s.lesson}" ${s.lesson === e.lesson ? 'selected' : ''}>${s.time}</option>`).join('')}</select></label>
-      <fieldset class="repeat">
-        <legend>Gentagelse</legend>
-        <label class="radio"><input type="radio" name="repeat" value="once" ${isSeries(e) ? '' : 'checked'}> Kun uge ${weekNo(week)}</label>
-        <label class="radio"><input type="radio" name="repeat" value="series" ${isSeries(e) ? 'checked' : ''}> Fast i en periode</label>
-        <div class="series-fields" ${isSeries(e) ? '' : 'hidden'}>
-          <label for="f-from">Fra ${weekSelect('from', e.from, week)}</label>
-          <label for="f-to">Til og med ${weekSelect('to', isSeries(e) ? e.to : addWeeks(week, 10), week)}</label>
-        </div>
-      </fieldset>
+    </div>
+    <div class="choice" role="radiogroup" aria-label="Gentagelse">
+      <label class="choice-chip"><input type="radio" name="repeat" value="once" ${isSeries(e) ? '' : 'checked'}>Kun uge ${weekNo(week)}</label>
+      <label class="choice-chip"><input type="radio" name="repeat" value="series" ${isSeries(e) ? 'checked' : ''}>Fast i en periode</label>
+    </div>
+    <div class="fields series-fields" ${isSeries(e) ? '' : 'hidden'}>
+      <label class="field half" for="f-from"><span>Fra</span>${weekSelect('from', e.from, week)}</label>
+      <label class="field half" for="f-to"><span>Til og med</span>${weekSelect('to', isSeries(e) ? e.to : addWeeks(week, 10), week)}</label>
     </div>
 
-    <div class="tabs" role="tablist">
-      <button type="button" role="tab" data-tab="plan">Plan</button>
-      <button type="button" role="tab" data-tab="voksne">Voksne</button>
-      <button type="button" role="tab" data-tab="hold">Holddeling</button>
+    <div class="seg" role="tablist">
+      <button type="button" role="tab" data-tab="plan">${icon('plan')}Plan</button>
+      <button type="button" role="tab" data-tab="voksne">${icon('person')}Voksne</button>
+      <button type="button" role="tab" data-tab="hold">${icon('split')}Hold</button>
     </div>
     <div class="tabpanel" data-panel="plan">
-      <label for="f-plan">Plan for uge ${weekNo(week)}
-        <textarea id="f-plan" name="plan" rows="5" placeholder="Hvad skal vi lave?">${esc(w.plan)}</textarea></label>
+      <label class="field" for="f-plan"><span>Plan for uge ${weekNo(week)}</span>
+        <textarea id="f-plan" name="plan" rows="4" placeholder="Hvad skal vi lave?">${esc(w.plan)}</textarea></label>
     </div>
     <div class="tabpanel" data-panel="voksne">
-      <label for="f-voksne">Faste voksne
+      <label class="field" for="f-voksne"><span>Faste voksne</span>
         <input id="f-voksne" name="voksne" value="${esc(e.voksne)}" placeholder="F.eks. Caroline og Kaj"></label>
-      <label for="f-weekVoksne">Andre voksne kun i uge ${weekNo(week)}
-        <input id="f-weekVoksne" name="weekVoksne" value="${esc(w.voksne)}" placeholder="Lad stå tom hvis det er de faste"></label>
+      <label class="field" for="f-weekVoksne"><span>Andre kun i uge ${weekNo(week)}</span>
+        <input id="f-weekVoksne" name="weekVoksne" value="${esc(w.voksne)}" placeholder="Tom = de faste"></label>
     </div>
     <div class="tabpanel" data-panel="hold">
       ${isNew
-        ? '<p class="muted">Gem lektionen først, så kan du lave holddelingen.</p>'
-        : `${hold.length ? `<ul class="hold-summary">${hold.map((h) => `<li><strong>${esc(h.name)}</strong>${h.adult ? `: ${esc(h.adult)}` : ''}</li>`).join('')}</ul>`
-            : '<p class="muted">Ingen holddeling for denne dag endnu.</p>'}
-           <a class="btn" href="#/holddeling/${e.id}/${week}" target="_blank" rel="noopener">Åbn holddeling i ny fane</a>`}
+        ? '<p class="sub">Gem lektionen først.</p>'
+        : `${hold.length ? `<ul class="hold-lines">${hold.map((h) => `<li><b>${esc(h.name)}</b>${h.adult ? `: ${esc(h.adult)}` : ''}</li>`).join('')}</ul>` : ''}
+           <a class="btn tonal" href="#/holddeling/${e.id}/${week}" target="_blank" rel="noopener">${icon('open')}Åbn holddeling</a>`}
     </div>
 
     <footer>
-      ${isNew ? '' : '<button type="button" class="btn ghost danger" data-del>Slet</button>'}
+      ${isNew ? '' : '<button type="button" class="btn text danger" data-del>Slet</button>'}
       <span class="spacer"></span>
-      <button type="button" class="btn ghost" data-close>Annuller</button>
-      <button class="btn primary">Gem</button>
+      <button type="button" class="btn tonal" data-close>Annuller</button>
+      <button class="btn filled">Gem</button>
     </footer>
   </form>`);
 
@@ -183,11 +210,11 @@ export function openLessonModal({ entry, classes, day, lesson, week, tab = 'plan
     form.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== t; });
   };
   showTab(tab);
-  form.querySelector('.tabs').onclick = (ev) => ev.target.dataset.tab && showTab(ev.target.dataset.tab);
+  form.querySelector('.seg').onclick = (ev) => { const b = ev.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); };
   form.querySelectorAll('[name=repeat]').forEach((r) => {
     r.onchange = () => { form.querySelector('.series-fields').hidden = form.repeat.value !== 'series'; };
   });
-  if (isNew) form.subject.focus();
+  if (isNew && matchMedia('(pointer: fine)').matches) form.subject.focus();
 
   form.onsubmit = async (ev) => {
     ev.preventDefault();
@@ -214,7 +241,7 @@ export function openLessonModal({ entry, classes, day, lesson, week, tab = 'plan
       if (isSeries(e) && coreChanged && !rangeChanged) {
         scope = await choose('Gælder ændringen hele perioden?',
           `<p>${esc(e.subject)} ligger fast i ${describeWeeks([e.from, e.to])}.</p>`,
-          [['cancel', 'Annuller', 'ghost'], ['week', `Kun uge ${weekNo(week)}`, ''], ['all', 'Hele perioden']]);
+          [['cancel', 'Annuller', 'text'], ['week', `Kun uge ${weekNo(week)}`, 'tonal'], ['all', 'Hele perioden', 'filled']]);
         if (scope === 'cancel') return;
       }
       if (scope === 'week') {
@@ -240,7 +267,7 @@ export function openLessonModal({ entry, classes, day, lesson, week, tab = 'plan
       const ans = await choose('Der ligger allerede noget i skemaet',
         `<p>${DAYS[target.day]} kl. ${lessonLabel(target.lesson)}:</p><ul class="conflicts">${list}</ul>
          <p>Skal ${esc(target.subject)} erstatte det, eller skal begge ting stå i skemaet?</p>`,
-        [['cancel', 'Annuller', 'ghost'], ['both', 'Behold begge', ''], ['replace', 'Erstat']]);
+        [['cancel', 'Annuller', 'text'], ['both', 'Behold begge', 'tonal'], ['replace', 'Erstat', 'filled']]);
       if (ans === 'cancel') return;
       if (ans === 'replace') {
         for (const { other, hits } of conflicts) {
@@ -260,9 +287,9 @@ export function openLessonModal({ entry, classes, day, lesson, week, tab = 'plan
   form.querySelector('[data-del]')?.addEventListener('click', async () => {
     const ans = isSeries(e)
       ? await choose('Slet lektion', `<p>${esc(e.subject)} ligger fast i ${describeWeeks([e.from, e.to])}.</p>`,
-        [['cancel', 'Annuller', 'ghost'], ['week', `Kun uge ${weekNo(week)}`, 'danger'], ['all', 'Hele perioden', 'danger']])
+        [['cancel', 'Annuller', 'text'], ['week', `Kun uge ${weekNo(week)}`, 'tonal danger'], ['all', 'Hele perioden', 'filled danger']])
       : await choose('Slet lektion', `<p>Vil du slette ${esc(e.subject)} i uge ${weekNo(week)}?</p>`,
-        [['cancel', 'Annuller', 'ghost'], ['all', 'Slet', 'danger']]);
+        [['cancel', 'Annuller', 'text'], ['all', 'Slet', 'filled danger']]);
     if (ans === 'cancel') return;
     if (ans === 'all') {
       store.remove('lessons', e.id);

@@ -2,7 +2,7 @@ import * as store from '../store.js';
 import { EVENT_TYPES } from '../config.js';
 import { esc, isoDate, today, fmtLong, timeRange } from '../util.js';
 import { isoWeek } from '../weeks.js';
-import { formModal } from '../ui.js';
+import { formModal, icon } from '../ui.js';
 
 // Årskalender august–juni, som skolens egen. Viser kun lærermøder, afdelingsmøder og kurser.
 const MONTHS = ['Januar', 'Februar', 'Marts', 'April', 'Maj', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'December'];
@@ -44,35 +44,50 @@ export function renderKalender(main, [yearArg]) {
     }).join('')}</tr>`;
   }).join('');
 
+  const evCard = (e) => `<button type="button" class="card ev-card" data-ev="${e.id}">
+    <i class="ev ev-${esc(e.type)}">${esc(EVENT_TYPES[e.type]?.short)}</i>
+    <span class="ev-body"><b>${esc(e.title || EVENT_TYPES[e.type]?.label)}</b>
+      <span class="meta"><span>${fmtLong(e.date)}</span>
+      ${e.start ? `<span>${icon('clock')}${esc(timeRange(e.start, e.end))}</span>` : ''}
+      ${e.place ? `<span>${icon('pin')}${esc(e.place)}</span>` : ''}</span></span>
+  </button>`;
+
+  // Telefon: liste pr. måned i stedet for den brede årsoversigt.
+  const yearFrom = isoDate(months[0]);
+  const yearTo = isoDate(new Date(start + 1, 6, 0));
+  const inYear = events.filter((e) => e.date >= yearFrom && e.date <= yearTo)
+    .sort((a, b) => (a.date + (a.start || '')).localeCompare(b.date + (b.start || '')));
+  const agenda = months.map((m) => {
+    const list = inYear.filter((e) => +e.date.slice(5, 7) === m.getMonth() + 1);
+    return list.length ? `<h2 class="section-title">${MONTHS[m.getMonth()]}</h2><div class="stack">${list.map(evCard).join('')}</div>` : '';
+  }).join('') || '<div class="empty">Ingen møder eller kurser i dette skoleår.</div>';
+
   main.innerHTML = `
-    <div class="page-head">
-      <h1>Lærerkalender</h1>
-      <div class="weeknav">
-        <a class="btn icon" href="#/kalender/${start - 1}" aria-label="Forrige skoleår">‹</a>
-        <div class="weeklabel"><strong>Skoleåret ${start}/${String(start + 1).slice(2)}</strong></div>
-        <a class="btn icon" href="#/kalender/${start + 1}" aria-label="Næste skoleår">›</a>
-        <button type="button" class="btn primary" data-new>Tilføj</button>
+    <header class="page-head">
+      <h1>Kalender</h1>
+      <div class="head-actions">
+        <div class="weeknav">
+          <a class="icon-btn" href="#/kalender/${start - 1}" aria-label="Forrige skoleår">${icon('left')}</a>
+          <div class="week-pill"><b>${start}/${String(start + 1).slice(2)}</b><span>skoleår</span></div>
+          <a class="icon-btn" href="#/kalender/${start + 1}" aria-label="Næste skoleår">${icon('right')}</a>
+        </div>
+        <button type="button" class="btn filled wide-only" data-new>${icon('plus')}Tilføj</button>
+      </div>
+    </header>
+    <div class="legend">${Object.entries(EVENT_TYPES).map(([k, t]) =>
+      `<span><i class="ev ev-${k}">${t.short}</i>${t.label}</span>`).join('')}</div>
+
+    <div class="wide-only stack-lg">
+      ${upcoming.length ? `<section><h2 class="section-title">Næste</h2><div class="card-grid">${upcoming.map(evCard).join('')}</div></section>` : ''}
+      <div class="table-wrap">
+        <table class="year">
+          <thead><tr>${months.map((m) => `<th scope="col">${MONTHS[m.getMonth()].slice(0, 3)}</th>`).join('')}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
       </div>
     </div>
-    <div class="legend">${Object.entries(EVENT_TYPES).map(([k, t]) =>
-      `<span><i class="ev ev-${k}">${t.short}</i> ${t.label}</span>`).join('')}</div>
-
-    <section class="upcoming">
-      <h2>Næste</h2>
-      ${upcoming.length ? `<ul>${upcoming.map((e) => `<li><button type="button" data-ev="${e.id}">
-        <i class="ev ev-${esc(e.type)}">${esc(EVENT_TYPES[e.type]?.short)}</i>
-        <span><strong>${esc(e.title || EVENT_TYPES[e.type]?.label)}</strong>
-        <small>${fmtLong(e.date)}${e.start ? ` · kl. ${esc(timeRange(e.start, e.end))}` : ''}${e.place ? ` · ${esc(e.place)}` : ''}</small></span>
-      </button></li>`).join('')}</ul>` : '<p class="muted">Ingen kommende møder eller kurser.</p>'}
-    </section>
-
-    <div class="grid-wrap">
-      <table class="year">
-        <thead><tr>${months.map((m) => `<th scope="col">${MONTHS[m.getMonth()]}</th>`).join('')}</tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-    <p class="hint">Tryk på en dag for at tilføje et møde eller kursus.</p>`;
+    <div class="narrow-only">${agenda}</div>
+    <button type="button" class="fab narrow-only" data-new>${icon('plus')}Tilføj</button>`;
 
   main.onclick = (ev) => {
     const evBtn = ev.target.closest('[data-ev]');
@@ -85,14 +100,14 @@ export function renderKalender(main, [yearArg]) {
 
 function eventModal(ev, date) {
   formModal({
-    title: ev ? 'Rediger' : 'Nyt møde eller kursus',
+    title: ev ? (EVENT_TYPES[ev.type]?.label || 'Aftale') : 'Nyt møde eller kursus',
     values: ev || { date, type: 'lm' },
     fields: [
       { name: 'type', label: 'Type', type: 'select', options: Object.entries(EVENT_TYPES).map(([k, t]) => [k, t.label]) },
       { name: 'title', label: 'Titel', placeholder: 'Valgfri, f.eks. "Førstehjælp"' },
       { name: 'date', label: 'Dato', type: 'date', required: true },
-      { name: 'start', label: 'Fra kl.', type: 'time', half: true },
-      { name: 'end', label: 'Til kl.', type: 'time', half: true },
+      { name: 'start', label: 'Fra', type: 'time', half: true },
+      { name: 'end', label: 'Til', type: 'time', half: true },
       { name: 'place', label: 'Sted' },
       { name: 'note', label: 'Note', type: 'textarea', rows: 3 },
     ],
