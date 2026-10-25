@@ -37,11 +37,13 @@ Almindelige statiske filer, intet byggetrin (som pbo-dot/db). GitHub Pages fra `
 
 Alt nyt og alt, der ændres, skal leve op til top-design anno 2026.
 
-- Følg ånden i Googles **Material 3 Expressive** (som på ejerens Pixel), tilpasset appens egen stil og farver.
+- Moderne 2026-design, der virker lige godt på **iPhone/iPad (Safari)**, **Android** og **Windows-computer** (Edge/Chrome). Lærerne bruger forskellige enheder.
+- Fælles, neutral stil i stedet for at efterligne én platform. Ånden fra Material 3 Expressive må gerne bruges, men det skal også føles naturligt på Apple.
 - Stor, letlæselig skrift og stærk kontrast. Både lys og mørk tilstand skal se godt ud.
 - Store trykflader (mindst 44–48 px) og runde knapper. Tre slags knapper: fyldt (hovedhandling), tonal (almindelig) og tekst (mindre vigtig).
 - Kort uden kanter, store runde hjørner og god luft. Ensartede streg-ikoner.
-- Faner i bunden med en farvet "pille" om den valgte fane.
+- Telefon: faner i bunden med en farvet "pille" om den valgte fane, og plads til iPhonens hjemmelinje. Computer: brug den ekstra bredde, f.eks. faner i siden og hele ugeskemaet på én gang.
+- Skal kunne bruges med mus og tastatur på computer, ikke kun touch.
 - Korte tekster. Ingen lange hjælpetekster.
 - Bløde, diskrete overgange (respektér "reducer bevægelse").
 
