@@ -1,0 +1,10 @@
+{
+  "name": "Teamkalender 0. årgang",
+  "short_name": "Teamkalender",
+  "start_url": "./#/skema",
+  "display": "standalone",
+  "background_color": "#fbf7f2",
+  "theme_color": "#5b2147",
+  "lang": "da",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
