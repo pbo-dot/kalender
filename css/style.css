@@ -123,6 +123,17 @@ b { font-weight: 800; }
 .shell { padding-left: var(--gutter-l); padding-right: var(--gutter-r); }
 #banner { max-width: 1320px; margin: 0 auto; padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
 #banner:empty { padding-top: env(safe-area-inset-top, 0px); }
+.topline { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.topline .mode-pill { min-width: 0; }
+.topline .mode-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Hjælp */
+.help-list { display: flex; flex-direction: column; gap: 10px; }
+.help-item { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: start; padding: 14px; border-radius: var(--r-md); background: var(--c1); }
+.help-item > i { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--bgc, var(--tonal)); color: var(--fgc, var(--on-tonal)); }
+.help-item h3 { font: 800 1.1rem var(--font-display); margin: 2px 0 4px; }
+.help-item ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 2px; font-size: 0.95rem; }
+.version { text-align: center; color: var(--muted); font-size: 0.85rem; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; }
 main {
   max-width: 1320px; margin: 0 auto;
   padding-block: 16px calc(124px + env(safe-area-inset-bottom, 0px));
@@ -368,7 +379,7 @@ dialog::backdrop { background: var(--scrim); }
 #modal2 { width: min(440px, calc(100vw - 32px)); margin: auto; border-radius: var(--r-xl); padding-bottom: 0; }
 @media (min-width: 840px) {
   dialog { width: min(600px, calc(100vw - 48px)); margin: auto; border-radius: var(--r-xl); max-height: calc(100dvh - 48px); }
-  .grab { display: none; }
+  .grab { height: 0; margin: 0; opacity: 0; }
 }
 .modal-form { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 16px; }
 .modal-form h2 { font-size: 1.75rem; }
@@ -500,3 +511,4 @@ table.year { border-collapse: separate; border-spacing: 2px; width: 100%; min-wi
   .nav, #banner, .fab, .add-slot, .add-more, .actions, .note, .btn { display: none !important; }
   .shell { padding: 0 !important; }
 }
+.nowrap { white-space: nowrap; }

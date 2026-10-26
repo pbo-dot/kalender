@@ -7,6 +7,7 @@ import { renderHolddeling } from './views/holddeling.js';
 import { renderKalender } from './views/kalender.js';
 import { renderHold } from './views/hold.js';
 import { renderMoeder } from './views/moeder.js';
+import { openHelp } from './views/hjaelp.js';
 
 const main = document.getElementById('main');
 const nav = document.getElementById('nav');
@@ -83,10 +84,14 @@ function renderNav() {
     nav.insertAdjacentHTML('beforeend', `<button type="button" class="nav-out" id="logout" title="Log ud (${esc(store.userEmail())})">
       <i>${icon('logout')}</i><span>Log ud</span></button>`);
     nav.querySelector('#logout').onclick = () => store.signOut();
-  } else {
-    document.getElementById('banner').innerHTML =
-      `<p class="mode-pill">${icon('info')}Prøve-tilstand: gemmes kun på denne enhed</p>`;
   }
+  const banner = document.getElementById('banner');
+  banner.innerHTML = `<div class="topline">
+    ${store.isShared() ? '' : `<p class="mode-pill">${icon('info')}<span>Prøve-tilstand: gemmes kun på denne enhed</span></p>`}
+    <span class="spacer"></span>
+    <button type="button" class="icon-btn" id="help" aria-label="Hjælp" title="Hjælp">${icon('help')}</button>
+  </div>`;
+  banner.querySelector('#help').onclick = openHelp;
   nav.hidden = false;
 }
 
