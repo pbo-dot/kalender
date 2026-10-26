@@ -3,7 +3,7 @@
   "name": "Teamkalender 0. årgang",
   "short_name": "Teamkalender",
   "lang": "da",
-  "start_url": "./#/skema",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f3f4f8",
