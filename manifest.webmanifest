@@ -1,15 +1,16 @@
 {
+  "id": "./",
   "name": "Teamkalender 0. årgang",
   "short_name": "Teamkalender",
+  "lang": "da",
   "start_url": "./#/skema",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f3f4f8",
   "theme_color": "#2f4cf5",
-  "lang": "da",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

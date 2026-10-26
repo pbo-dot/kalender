@@ -21,6 +21,7 @@ Almindelige statiske filer, intet byggetrin (som pbo-dot/db). GitHub Pages fra `
 - `js/app.js` – navigation og login. `js/ui.js` – dialoger, formularer, beskeder.
 - `js/views/` – én fil pr. fane. `holddeling.js` åbner i egen fane fra skemaet.
 - `supabase/setup.sql` – tabeller og adgangsregler til delt data.
+- `sw.js` – service worker, så appen kan installeres. Hæv cache-navnet i `sw.js` og `VERSION` i `js/config.js` ved hver udgivelse.
 
 **Undtagelse fra "ingen server":** Lærerne skal se de samme data, så delingen kræver en server. Vi bruger Supabase (gratis, EU/Frankfurt) med login via link på mail, og kun mails på en godkendt liste får adgang. Alt andet kører i browseren.
 

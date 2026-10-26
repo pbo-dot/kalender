@@ -4,7 +4,7 @@ export const SUPABASE_URL = '';
 export const SUPABASE_ANON_KEY = '';
 
 // Hæv versionen ved hver udgivelse, så man kan se hvilken udgave man har.
-export const VERSION = '2.2';
+export const VERSION = '2.3';
 export const VERSION_DATE = '2026-10-26';
 
 export const CLASSES = ['0.A', '0.B'];

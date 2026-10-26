@@ -117,4 +117,6 @@ async function boot() {
   render(true);
 }
 
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+
 boot();
